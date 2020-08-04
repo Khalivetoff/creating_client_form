@@ -1,24 +1,27 @@
 <template>
   <div
     class="select"
-    :class="{ 'select_dirty' : dirty, 'select_focused' : focused }"
-    @click="showMenu()"
+    :class="{ 'select_dirty' : dirty, 'select_focused' : focused, 'select_error' : notification }"
+    @mouseup="showMenu()"
   >
-    <label class="select__label">{{ label }}</label>
-    <div class="select__selected-items">{{ selected_item_text }}</div>
-    <input readonly>
-
+    <div class="select__main-elements">
+      <label ref="label" class="select__label">{{ label }}</label>
+      <div ref="selected_area" class="select__selected-items">{{ selected_item_text }}</div>
+      <input ref="input" readonly>
+      <span ref="icon" class="select__required-icon" v-if="support_block">*</span>
+    </div>
+    <div class="select__info" v-if="support_block">{{ notification }}</div>
     <transition
       enter-active-class="select_enter"
       leave-active-class="select_leave"
     >
       <div class="select__menu" v-show="focused">
         <div class="select__window">
-          <div class="select__list-items">
+          <div class="select__list-items" ref="select_list">
             <div class="select__item"
                  v-for="(item, index) in items"
                  :key="index"
-                 @click.stop="toggleSelectedItem(item)"
+                 @mouseup.stop="toggleSelectedItem(item)"
                  :class="{ 'select__item_selected' : checkSelected(item) }"
             >{{ item[item_text] !== undefined ? item[item_text] : item }}</div>
           </div>
@@ -71,6 +74,17 @@
               default() {
                   return false;
               }
+          },
+          support_block: {
+              type: Boolean,
+              default() {
+                  return false;
+              }
+          },
+          notification: {
+              default() {
+                  return '';
+              }
           }
       },
       data() {
@@ -78,9 +92,20 @@
               focused: false,
           }
       },
-      /**по-хорошему, нужно припотеть по поводу перевода данных в нужный тип, например, v-model (value) в массив, если в пропсы передан :multiple="true" и тд,
-       * но шото лень (простите). Да и зачем это делать, если есть куча уже готовых технологий для этого*/
       methods: {
+          showMenu() {
+              this.focused = true;
+              document.addEventListener('mouseup', this.checkClick);
+          },
+          checkClick() {
+              if (event.target == this.$refs.input || event.target == this.$refs.label ||
+                  event.target == this.$refs.selected_area || event.target == this.$refs.icon) return;
+              this.hideMenu();
+          },
+          hideMenu() {
+              this.focused = false;
+              document.removeEventListener('mouseup', this.checkClick);
+          },
           toggleSelectedItem(item) {
               if (!this.multiple) {
                   if (!this.return_object) {
@@ -125,21 +150,7 @@
                   }
               }
           },
-          showMenu() {
-              this.focused = true;
-              document.addEventListener('click', this.checkClick);
-          },
-          checkClick() {
-              for (const i in this.$el.children) {
-                  let el = this.$el.children[i];
-                  if (el == event.target) return;
-              }
-              this.hideMenu();
-          },
-          hideMenu() {
-              this.focused = false;
-              document.removeEventListener('click', this.checkClick);
-          },
+
           checkSelected(item) {
               if (!this.multiple) {
                   if (!this.return_object) {
@@ -255,36 +266,58 @@
     }
   }
   .select {
-    height: 56px;
-    border: solid 1px #c4c4c4;
-    border-radius: 6px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
     position: relative;
-    .select__selected-items {
-      z-index: 1;
-      position: absolute;
-      padding: 18px 0px 0px 12px;
-      font-size: 18px;
+    .select__info {
+      font-size: 12px;
+      color: #f00;
+      padding: 3px 0px 0px 12px;
+      min-height: 17px;
     }
-    label {
-      z-index: 1;
-      font-size: 18px;
-      padding: 0px 0px 0px 12px;
+    .select__main-elements {
+      position: relative;
+      height: 56px;
+      border: solid 2px #c4c4c4;
       transition: 200ms;
-      color: #999;
-    }
-    input {
-      position: absolute;
-      height: 100%;
-      width: 100%;
-      border: none;
-      outline: none;
-      padding: 0px 0px 0px 12px;
       border-radius: 6px;
-      z-index: 1;
-      background: transparent;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      .select__required-icon {
+        position: absolute;
+        right: 6px;
+        top: 3px;
+        height: 15px;
+        font-size: 18px;
+        color: #999;
+      }
+      .select__selected-items {
+        position: absolute;
+        padding: 27px 0px 0px 12px;
+        font-size: 16px;
+        width: 100%;
+        height: 56px;
+        color: #3d3d3d;
+        white-space: nowrap;
+        overflow-x: hidden;
+      }
+      label {
+        z-index: 1;
+        font-size: 18px;
+        padding: 0px 0px 0px 12px;
+        transition: 200ms;
+        color: #999;
+      }
+      input {
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        border: none;
+        outline: none;
+        padding: 0px 0px 0px 12px;
+        border-radius: 6px;
+        z-index: 1;
+        background: transparent;
+      }
     }
 
     .select__menu {
@@ -304,6 +337,7 @@
             padding: 6px 12px;
             cursor: pointer;
             user-select: none;
+            color: #3d3d3d;
           }
           .select__item:hover {
             background: #fafafa;
@@ -316,12 +350,27 @@
     }
   }
   .select_focused {
-    border-color: #8a8a8a;
+    .select__main-elements {
+      border-color: #8a8a8a;
+    }
+  }
+  .select_error {
+    .select__main-elements {
+      border-color: #f00;
+      label {
+        color: #f00;
+      }
+      .select__required-icon {
+        color: #f00;
+      }
+    }
   }
   .select_dirty {
-    label {
-      transform: translateY(-14px);
-      font-size: 14px;
+    .select__main-elements {
+      label {
+        transform: translateY(-12px);
+        font-size: 13px;
+      }
     }
   }
 </style>

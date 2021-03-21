@@ -107,50 +107,20 @@
               document.removeEventListener('mouseup', this.checkClick);
           },
           toggleSelectedItem(item) {
-              if (!this.multiple) {
-                  if (!this.return_object) {
-                      if (item[this.item_value]) {
-                          this.$emit('input', item[this.item_value]);
-                      } else {
-                          this.$emit('input', item);
-                      }
-                  } else {
-                      this.$emit('input', item);
-                  }
-                  this.hideMenu();
-              } else {
-                  if (!this.return_object) {
-                      if (item[this.item_value]) {
-                          if (this.value.includes(item[this.item_value])) {
-                              this.$emit('input', this.value.filter(i => i !== item[this.item_value]));
-                          } else {
-                              this.$emit('input', this.value.concat(item[this.item_value]));
-                          }
-                      } else {
-                          if (this.value.includes(item)) {
-                              this.$emit('input', this.value.filter(i => i !== item));
-                          } else {
-                              this.$emit('input', this.value.concat(item));
-                          }
-                      }
-                  } else {
-                      if (item[this.item_value]) {
-                          if (this.value.map(i => i[this.item_value]).includes(item[this.item_value])) {
-                              this.$emit('input', this.value.filter(i => i[this.item_value] !== item[this.item_value]));
-                          } else {
-                              this.$emit('input', this.value.concat(item));
-                          }
-                      } else {
-                          if (this.value.includes(item[this.item_value])) {
-                              this.$emit('input', this.value.filter(i => i[this.item_value] !== item[this.item_value]));
-                          } else {
-                              this.$emit('input', this.value.concat(item));
-                          }
-                      }
-                  }
+            const _item = this.items_map[item[this.item_value] || item];
+            let selected_items = this.multiple ? this.value.concat([_item]) : [_item];
+            if (this.multiple) {
+              const filteredItems = {};
+              for (const item of selected_items) {
+                filteredItems[item[this.item_value] || item] = item;
               }
+              selected_items = Object.values(filteredItems);
+              this.$emit('input', selected_items);
+            } else {
+              this.$emit('input', selected_items[0]);
+              this.hideMenu();
+            }
           },
-
           checkSelected(item) {
               if (!this.multiple) {
                   if (!this.return_object) {
